@@ -1,5 +1,4 @@
 from src.game_logic.connect4 import Connect4
-from src.app.connect4_gui import Connect4GUI
 
 
 def main():

@@ -1,135 +1,165 @@
 import numpy as np
-
-
-class Player:
-    """
-    Represents a player in the Connect4 game.
-
-    Attributes:
-        number (int): The identifier of the player.
-        wins (int): The number of wins the player has.
-    """
-
-    def __init__(self, identifier: int):
-        self.number = identifier
-        self.wins = 0
+from src.tools.errors import InvalidMoveError
+from src.game_logic.player import Player
+from typing import Optional
 
 
 class Connect4:
     """
-    Represents a Connect4 game.
-
-    The Connect4 game is played on a 6x7 board with two players.
-    Players take turns dropping colored discs into the columns of the board.
-    The goal is to connect four discs of the same color in a row, column, or diagonal.
+    Connect4 class represents the Connect 4 game.
 
     Attributes:
+        board (numpy.ndarray): The game board represented as a 2D numpy array.
+        num_of_moves (int): The number of moves made in the game.
         player_one (Player): The first player.
         player_two (Player): The second player.
-        board (numpy.ndarray): The game board represented as a 6x7 numpy array.
-        num_of_moves (int): The number of moves made in the game.
+        current_player (Player): The current player making a move.
+
+    Methods:
+        __init__(): Initializes the Connect4 object.
+        _clear_board(): Clears the game board and resets the number of moves.
+        rematch(): Starts a new game by clearing the board and choosing a new starting player.
+        make_move(column: int) -> Optional[str]: Makes a move by placing a disc in the specified column.
+        _switch_player(): Switches the current player.
+        _is_board_full() -> bool: Checks if the game board is full.
+        _get_next_row(column: int) -> int: Gets the next available row in the specified column.
+        _is_valid_move(column: int) -> bool: Checks if the move is valid in the specified column.
+        _choose_starting_player(players: [Player]) -> Player: Chooses a random starting player.
+        _is_winning_move(player: Player) -> bool: Checks if the current player has won the game.
+        _initiate_terminal_game() -> Player: Starts a terminal-based game.
     """
 
     def __init__(self):
         """
-        Initializes a new instance of the Connect4 game.
+        Initializes the Connect4 object.
 
-        The game starts with an empty board and two players, player_one and player_two.
-        The board is represented as a 6x7 numpy array filled with zeros.
-        The number of moves is initially set to 0.
+        The game board is represented as a 2D numpy array with dimensions 6x7.
+        The number of moves is set to 0.
+        Two players are created using the Player class.
+        The starting player is chosen randomly.
         """
+        self.board = np.zeros((6, 7), dtype=int)
+        self.num_of_moves = 0
+
         self.player_one = Player(1)
         self.player_two = Player(2)
+
+        self.current_player = self._choose_starting_player(
+            [self.player_one, self.player_two]
+        )
+
+    def _clear_board(self):
+        """
+        Clears the game board and resets the number of moves.
+        """
         self.board = np.zeros((6, 7), dtype=int)
         self.num_of_moves = 0
 
-    def clear_board(self):
+    def rematch(self):
         """
-        Clears the game board by setting all positions to 0.
-        Resets the number of moves to 0.
+        Starts a new game by clearing the board and choosing a new starting player.
         """
-        self.board = np.zeros((6, 7), dtype=int)
-        self.num_of_moves = 0
+        self._clear_board()
+        self.current_player = self._choose_starting_player(
+            [self.player_one, self.player_two]
+        )
 
-    def make_move(self, column: int, player: Player):
+    def make_move(self, column: int) -> Optional[str]:
         """
-        Makes a move in the specified column for the given player.
+        Makes a move by placing a disc in the specified column.
 
         Args:
-            column (int): The column number where the move is to be made.
-            player (Player): The player making the move.
+            column (int): The column where the disc should be placed.
 
         Raises:
-            ValueError: If the specified column is already full.
+            InvalidMoveError: If the move is invalid.
 
         Returns:
-            None
+            Optional[str]: The result of the move (e.g., "Player 1 wins!", "Draw!").
         """
-        if not self.is_valid_move(column):
-            raise ValueError(f"Column {column} is already full.")
+        if not self._is_valid_move(column):
+            raise InvalidMoveError(column)
 
-        row = self.get_next_row(column)
-        self.board[row][column] = player.number
+        row = self._get_next_row(column)
+        self.board[row][column] = self.current_player.number
         self.num_of_moves += 1
 
-    def is_board_full(self) -> bool:
+        if self._is_winning_move(self.current_player):
+            self.current_player.wins += 1
+            return f"Player {self.current_player.number} wins!"
+
+        if self._is_board_full():
+            return f"Draw!"
+
+        self._switch_player()
+
+    def _switch_player(self):
         """
-        Check if the game board is full.
+        Switches the current player.
+        """
+        self.current_player = (
+            self.player_one
+            if self.current_player == self.player_two
+            else self.player_two
+        )
+
+    def _is_board_full(self) -> bool:
+        """
+        Checks if the game board is full.
 
         Returns:
             bool: True if the board is full, False otherwise.
         """
         return self.num_of_moves == 42
 
-    def get_next_row(self, column: int) -> int:
+    def _get_next_row(self, column: int) -> int:
         """
-        Returns the next available row in the specified column.
+        Gets the next available row in the specified column.
 
         Args:
-            column (int): The column index.
+            column (int): The column to check.
 
         Returns:
-            int: The row index of the next available row in the column.
+            int: The next available row in the column.
         """
         for row in range(5, -1, -1):
             if self.board[row][column] == 0:
                 return row
 
-    def is_valid_move(self, column: int) -> bool:
+    def _is_valid_move(self, column: int) -> bool:
         """
-        Check if a move is valid in the given column.
+        Checks if the move is valid in the specified column.
 
         Args:
-            column (int): The column index to check.
+            column (int): The column to check.
 
         Returns:
             bool: True if the move is valid, False otherwise.
         """
         return self.board[0][column] == 0
 
-    def starting_player(self, players: [Player]) -> Player:
+    def _choose_starting_player(self, players: [Player]) -> Player:
         """
-        Randomly selects and returns a player from the given list of players.
+        Chooses a random starting player.
 
-        Parameters:
-            players (list): A list of Player objects representing the players.
+        Args:
+            players ([Player]): The list of players.
 
         Returns:
-            Player: The randomly selected player.
+            Player: The randomly chosen starting player.
         """
         return np.random.choice(players)
 
-    def is_winning_move(self, player: Player) -> bool:
+    def _is_winning_move(self, player: Player) -> bool:
         """
-        Checks if the specified player has a winning move on the game board.
+        Checks if the current player has won the game.
 
         Args:
-            player (Player): The player to check for a winning move.
+            player (Player): The current player.
 
         Returns:
-            bool: True if the player has a winning move, False otherwise.
+            bool: True if the current player has won, False otherwise.
         """
-
         # Horizontal check
         for row in range(6):
             for col in range(4):
@@ -158,41 +188,25 @@ class Connect4:
 
     def _initiate_terminal_game(self) -> Player:
         """
-        Initiates a terminal-based Connect4 game.
-
-        This method allows players to take turns making moves until the game is over.
-        The current player is prompted to choose a column to make a move in.
-        After each move, the board is printed and checked for a winning move.
-        If a winning move is found, the game ends and the winning player is announced.
-
-        Raises:
-            ValueError: If an invalid column number is chosen.
+        Starts a terminal-based game.
 
         Returns:
-            Player: The winning player, if there is one. Otherwise, None.
+            Player: The winning player, if any.
         """
-        self.current_player = self.starting_player([self.player_one, self.player_two])
-
-        while not self.is_board_full():
+        while not self._is_board_full():
             column = (
                 int(input(f"Player {self.current_player.number}, choose a column: "))
                 - 1
             )
 
             try:
-                self.make_move(column, self.current_player)
+                self.make_move(column)
 
                 print(self.board)
 
-                if self.is_winning_move(self.current_player):
+                if self._is_winning_move(self.current_player):
                     print(f"Player {self.current_player.number} wins!")
                     return self.current_player
-
-                self.current_player = (
-                    self.player_one
-                    if self.current_player == self.player_two
-                    else self.player_two
-                )
 
             except ValueError as e:
                 print(f"Error: {e}")
