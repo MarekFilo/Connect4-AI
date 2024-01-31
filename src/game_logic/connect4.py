@@ -38,6 +38,33 @@ class Connect4:
     def starting_player(self, players: [Player]) -> Player:
         return np.random.choice(players)
 
+    def is_winning_move(self, player: Player):
+        # Horizontal check
+        for row in range(6):
+            for col in range(4):
+                if all(self.board[row][col + i] == player.number for i in range(4)):
+                    return True
+
+        # Vertical check
+        for row in range(3):
+            for col in range(7):
+                if all(self.board[row + i][col] == player.number for i in range(4)):
+                    return True
+
+        # Diagonal check (from bottom-left to top-right)
+        for row in range(3, 6):
+            for col in range(4):
+                if all(self.board[row - i][col + i] == player.number for i in range(4)):
+                    return True
+
+        # Diagonal check (from top-left to bottom-right)
+        for row in range(3):
+            for col in range(4):
+                if all(self.board[row + i][col + i] == player.number for i in range(4)):
+                    return True
+
+        return False
+
     def initiate_game(self):
         self.player_one = Player(1)
         self.player_two = Player(2)
@@ -54,11 +81,17 @@ class Connect4:
                 self.make_move(column, self.current_player)
 
                 print(self.board)
+
+                if self.is_winning_move(self.current_player):
+                    print(f"Player {self.current_player.number} wins!")
+                    break
+                
                 self.current_player = (
                     self.player_one
                     if self.current_player == self.player_two
                     else self.player_two
                 )
+
             except ValueError as e:
                 print(f"Error: {e}")
 
