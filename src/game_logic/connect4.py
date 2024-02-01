@@ -1,6 +1,7 @@
+import itertools
 import numpy as np
-from src.tools.errors import InvalidMoveError
-from src.game_logic.player import Player
+from tools.errors import InvalidMoveError
+from .player import Player
 from typing import Optional
 
 
@@ -38,13 +39,13 @@ class Connect4:
         Two players are created using the Player class.
         The starting player is chosen randomly.
         """
-        self.board = np.zeros((6, 7), dtype=int)
-        self.num_of_moves = 0
+        self.board: np.ndarray = np.zeros((6, 7), dtype=int)
+        self.num_of_moves: int = 0
 
-        self.player_one = Player(1)
-        self.player_two = Player(2)
+        self.player_one: Player = Player(1)
+        self.player_two: Player = Player(2)
 
-        self.current_player = self._choose_starting_player(
+        self.current_player: Player = self._choose_starting_player(
             [self.player_one, self.player_two]
         )
 
@@ -60,7 +61,7 @@ class Connect4:
         Starts a new game by clearing the board and choosing a new starting player.
         """
         self._clear_board()
-        self.current_player = self._choose_starting_player(
+        self.current_player: Player = self._choose_starting_player(
             [self.player_one, self.player_two]
         )
 
@@ -81,15 +82,15 @@ class Connect4:
             raise InvalidMoveError(column)
 
         row = self._get_next_row(column)
-        self.board[row][column] = self.current_player.number
+        self.board[row][column] = self.current_player.identifier
         self.num_of_moves += 1
 
         if self._is_winning_move(self.current_player):
             self.current_player.wins += 1
-            return f"Player {self.current_player.number} wins!"
+            return f"Player {self.current_player.identifier} wins!"
 
         if self._is_board_full():
-            return f"Draw!"
+            return "Draw!"
 
         self._switch_player()
 
@@ -111,6 +112,15 @@ class Connect4:
             bool: True if the board is full, False otherwise.
         """
         return self.num_of_moves == 42
+
+    def board_layout(self) -> np.ndarray:
+        """
+        Returns the game board layout.
+
+        Returns:
+            np.ndarray: The game board layout.
+        """
+        return self.board
 
     def _get_next_row(self, column: int) -> int:
         """
@@ -161,32 +171,26 @@ class Connect4:
             bool: True if the current player has won, False otherwise.
         """
         # Horizontal check
-        for row in range(6):
-            for col in range(4):
-                if all(self.board[row][col + i] == player.number for i in range(4)):
-                    return True
+        for row, col in itertools.product(range(6), range(4)):
+            if all(self.board[row][col + i] == player.identifier for i in range(4)):
+                return True
 
         # Vertical check
-        for row in range(3):
-            for col in range(7):
-                if all(self.board[row + i][col] == player.number for i in range(4)):
-                    return True
+        for row, col in itertools.product(range(3), range(7)):
+            if all(self.board[row + i][col] == player.identifier for i in range(4)):
+                return True
 
         # Diagonal check (from bottom-left to top-right)
-        for row in range(3, 6):
-            for col in range(4):
-                if all(self.board[row - i][col + i] == player.number for i in range(4)):
-                    return True
+        for row, col in itertools.product(range(3, 6), range(4)):
+            if all(self.board[row - i][col + i] == player.identifier for i in range(4)):
+                return True
 
-        # Diagonal check (from top-left to bottom-right)
-        for row in range(3):
-            for col in range(4):
-                if all(self.board[row + i][col + i] == player.number for i in range(4)):
-                    return True
+        return any(
+            all(self.board[row + i][col + i] == player.identifier for i in range(4))
+            for row, col in itertools.product(range(3), range(4))
+        )
 
-        return False
-
-    def _initiate_terminal_game(self) -> Player:
+    def _initiate_terminal_game(self) -> Optional[Player]:
         """
         Starts a terminal-based game.
 
@@ -195,7 +199,9 @@ class Connect4:
         """
         while not self._is_board_full():
             column = (
-                int(input(f"Player {self.current_player.number}, choose a column: "))
+                int(
+                    input(f"Player {self.current_player.identifier}, choose a column: ")
+                )
                 - 1
             )
 
@@ -205,13 +211,17 @@ class Connect4:
                 print(self.board)
 
                 if self._is_winning_move(self.current_player):
-                    print(f"Player {self.current_player.number} wins!")
+                    print(f"Player {self.current_player.identifier} wins!")
                     return self.current_player
 
             except ValueError as e:
                 print(f"Error: {e}")
 
+    def __str__(self) -> str:
+        """
+        Returns a string representation of the Connect4 object.
 
-if __name__ == "__main__":
-    game = Connect4()
-    print(game.board)
+        Returns:
+            str: The string representation of the object.
+        """
+        return str(self.board)

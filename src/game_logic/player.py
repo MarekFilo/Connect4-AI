@@ -8,5 +8,5 @@ class Player:
     """
 
     def __init__(self, identifier: int):
-        self.number = identifier
+        self.identifier = identifier
         self.wins = 0

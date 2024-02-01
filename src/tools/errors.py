@@ -3,4 +3,4 @@ class InvalidMoveError(Exception):
 
     def __init__(self, column: int):
         self.column = column
-        super().__init__(f"Invalid move: Column {column} is already full.")
+        super().__init__(f"Invalid move: Column {column + 1} is already full.")
