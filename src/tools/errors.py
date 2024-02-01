@@ -6,8 +6,20 @@ class InvalidMoveError(Exception):
         super().__init__(f"Invalid move: Column {column + 1} is already full.")
 
 
-class GameEndError(Exception):
-    """Custom exception for the end of a Connect4 game."""
+class PlayerWin(Exception):
+    """
+    Exception raised when a player wins the game.
 
-    def __init__(self, message: str):
-        super().__init__(message)
+    Args:
+        message (str): The error message associated with the exception.
+    """
+
+    def __init__(self, player_identifier: int):
+        super().__init__(f"Player {player_identifier} won!")
+
+
+class GameDraw(Exception):
+    """Custom exception for a draw in Connect4."""
+
+    def __init__(self):
+        super().__init__("Draw!")

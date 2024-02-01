@@ -1,5 +1,5 @@
 from game_logic.connect4 import Connect4
-from tools.errors import InvalidMoveError, GameEndError
+from tools.errors import InvalidMoveError, GameDraw, PlayerWin
 import customtkinter as ctk
 from AI.minimax import Minimax
 from typing import Optional
@@ -70,20 +70,22 @@ class Connect4_GUI(Connect4):
 
             self.Player_turn_label = self._update_label(
                 self.Player_turn_label,
-                text=f"Player {self.current_player.identifier}'s turn",
+                f"Player {self.current_player.identifier}'s turn",
             )
+        except GameDraw as e:
+            self.Player_turn_label = self._update_label(self.Player_turn_label, f"{e}")
+            print(e)
 
-        except GameEndError as e:
-            # self.Player_turn_label = self._update_label(self.Player_turn_label, text=e)
-            self._clear_canvas(self.canvas)
-            self._main_menu()
+        except PlayerWin as e:
+            self.Player_turn_label = self._update_label(self.Player_turn_label, f"{e}")
+            print(e)
 
         except InvalidMoveError as e:
-            pass
-            # self.Player_turn_label = self._update_label(self.Player_turn_label, text=e)
+            self.Player_turn_label = self._update_label(self.Player_turn_label, f"{e}")
+            print(e)
+
         finally:
-            if self.game_state == 0:
-                self._render_game_cubes()
+            self._render_game_cubes()
 
     def _on_game_grid_click(self, event):
         horizontal_condition = (
@@ -98,6 +100,7 @@ class Connect4_GUI(Connect4):
             self.make_move(clicked_column)
 
     def _render_game_cubes(self):
+        self.canvas.delete("cubes")
         self.rows, self.columns = self.board_layout().shape
 
         for col in range(self.columns):
@@ -213,6 +216,10 @@ class Connect4_GUI(Connect4):
             height=button_height,
             font=self.font,
         )
+
+    def _update_label(self, label: ctk.CTkLabel, new_text: str) -> ctk.CTkLabel:
+        label.destroy()
+        return self._create_label(new_text)
 
     def _create_label(self, text: str, text_color="#1f6aa5") -> ctk.CTkLabel:
         return ctk.CTkLabel(self.root, text=text, font=self.font, text_color=text_color)

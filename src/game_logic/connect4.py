@@ -1,6 +1,6 @@
 import itertools
 import numpy as np
-from tools.errors import InvalidMoveError, GameEndError
+from tools.errors import InvalidMoveError, PlayerWin, GameDraw
 from .player import Player
 from typing import Optional
 
@@ -40,8 +40,11 @@ class Connect4:
         Two players are created using the Player class.
         The starting player is chosen randomly.
         """
-        self.board: np.ndarray = np.zeros((6, 7), dtype=int)
+        self.rows: int = 6
+        self.columns: int = 7
+        self.board: np.ndarray = np.zeros((self.rows, self.columns), dtype=int)
         self.num_of_moves: int = 0
+        self.max_moves: int = self.rows * self.columns
 
         self.game_state: int = 0
 
@@ -56,7 +59,7 @@ class Connect4:
         """
         Clears the game board and resets the number of moves.
         """
-        self.board = np.zeros((6, 7), dtype=int)
+        self.board = np.zeros((self.rows, self.columns), dtype=int)
         self.num_of_moves = 0
 
     def rematch(self):
@@ -75,34 +78,25 @@ class Connect4:
         Args:
             column (int): The column where the disc should be placed.
 
-        Raises:
-            InvalidMoveError: If the move is invalid.
 
         Returns:
             Optional[str]: The result of the move (e.g., "Player 1 wins!", "Draw!").
         """
 
-        try:
-            self._is_valid_move(column)
-            self.row = self._get_next_row(column)
-            self.board[self.row][column] = self.current_player.identifier
-            self.num_of_moves += 1
+        self._is_valid_move(column)
+        self.row = self._get_next_row(column)
+        self.board[self.row][column] = self.current_player.identifier
+        self.num_of_moves += 1
 
-            if self._is_winning_move(self.current_player):
-                self.current_player.wins += 1
-                self.win_message = f"Player {self.current_player.identifier} wins!"
-                raise GameEndError(self.win_message)
-
-            if self._is_board_full():
-                self.draw_message = "Draw!"
-                raise GameEndError(self.draw_message)
-
-        except GameEndError as e:
+        if self._is_winning_move(self.current_player):
+            self.current_player.wins += 1
+            self.win_message = f"Player {self.current_player.identifier} wins!"
             self.game_state = 1
-            raise GameEndError(e)
+            raise PlayerWin(self.current_player.identifier)
 
-        except InvalidMoveError as e:
-            raise InvalidMoveError(e)
+        if self._is_board_full():
+            self.game_state = 1
+            raise GameDraw()
 
     def switch_player(self):
         """
@@ -121,7 +115,7 @@ class Connect4:
         Returns:
             bool: True if the board is full, False otherwise.
         """
-        return self.num_of_moves == 42
+        return self.num_of_moves == self.max_moves
 
     def board_layout(self) -> np.ndarray:
         """
@@ -156,7 +150,10 @@ class Connect4:
         Returns:
             bool: True if the move is valid, False otherwise.
         """
-        return self.board[0][column] == 0
+        if self.board[0][column] == 0:
+            return True
+        else:
+            raise InvalidMoveError(column)
 
     def _choose_starting_player(self, players: [Player]) -> Player:
         """
@@ -224,8 +221,8 @@ class Connect4:
                     print(f"Player {self.current_player.identifier} wins!")
                     return self.current_player
 
-            except ValueError as e:
-                print(f"Error: {e}")
+            except InvalidMoveError as e:
+                print(column)
 
     def __str__(self) -> str:
         """
