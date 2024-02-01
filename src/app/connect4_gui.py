@@ -1,5 +1,5 @@
 from game_logic.connect4 import Connect4
-from tools.errors import InvalidMoveError
+from tools.errors import InvalidMoveError, GameEndError
 import customtkinter as ctk
 from AI.minimax import Minimax
 from typing import Optional
@@ -17,6 +17,7 @@ class Connect4_GUI(Connect4):
         self.player_two_color = "#FF70A6"
         self.rows, self.columns = self.board.shape
         self.canvas_padding: int = 60
+        self.game_cube_padding: int = 7
 
     def create_app(self):
         self._set_settings
@@ -31,34 +32,23 @@ class Connect4_GUI(Connect4):
     def _main_menu(self):
         self._clear_canvas()
 
-        PvP_button = self._create_button("PvP", self._initiate_pvp_game)
-        PvP_button.place(relx=0.5, rely=0.45, anchor="center")
+        self.PvP_button = self._create_button("PvP", self._initiate_pvp_game)
+        self.PvP_button.place(relx=0.5, rely=0.45, anchor="center")
 
-        PvE_button = self._create_button("PvE", self._initiate_pve_game)
-        PvE_button.place(relx=0.5, rely=0.55, anchor="center")
+        self.PvE_button = self._create_button("PvE", self._initiate_pve_game)
+        self.PvE_button.place(relx=0.5, rely=0.55, anchor="center")
 
     def _game_menu(self):
         self._clear_canvas()
         self._draw_game_grid()
 
-        Player_turn_label = self._create_label(
-            f"Player {self.current_player.identifier} starts the game!"
-        )
-        Player_turn_label.place(relx=0.5, rely=0.95, anchor="center")
-
-        player_one_score_label = self._create_label(f"Player 1: {self.player_one.wins}")
-        player_one_score_label.place(relx=0.1, rely=0.05, anchor="center")
-
-        player_two_score_label = self._create_label(f"Player 2: {self.player_two.wins}")
-        player_two_score_label.place(relx=0.9, rely=0.05, anchor="center")
+        self._create_game_labels()
 
         self.canvas.bind("<Button-1>", self._on_game_grid_click)
 
-    def _initiate_pvp_game(self):
-        self._game_menu()
-
-    def _initiate_pve_game(self):
-        pass
+    def _at_game_over(self):
+        self._clear_canvas(self.canvas)
+        self._main_menu()
 
     def _draw_game_grid(self):
         self.canvas = self._create_canvas()
@@ -66,6 +56,34 @@ class Connect4_GUI(Connect4):
         self._create_grid_rectangles(self.canvas)
 
         self.canvas.pack()
+
+    def _initiate_pvp_game(self):
+        self._game_menu()
+
+    def _initiate_pve_game(self):
+        pass
+
+    def make_move(self, column: int) -> str | None:
+        try:
+            super().make_move(column)
+            self.switch_player()
+
+            self.Player_turn_label = self._update_label(
+                self.Player_turn_label,
+                text=f"Player {self.current_player.identifier}'s turn",
+            )
+
+        except GameEndError as e:
+            # self.Player_turn_label = self._update_label(self.Player_turn_label, text=e)
+            self._clear_canvas(self.canvas)
+            self._main_menu()
+
+        except InvalidMoveError as e:
+            pass
+            # self.Player_turn_label = self._update_label(self.Player_turn_label, text=e)
+        finally:
+            if self.game_state == 0:
+                self._render_game_cubes()
 
     def _on_game_grid_click(self, event):
         horizontal_condition = (
@@ -77,21 +95,13 @@ class Connect4_GUI(Connect4):
         )
         if horizontal_condition and vertical_condition:
             clicked_column = self._calculate_clicked_column(event)
+            self.make_move(clicked_column)
 
-            try:
-                if self.make_move(clicked_column):
-                    print(self.make_move(clicked_column))
-                self._render_circles()
-            except InvalidMoveError as e:
-                print(e)
+    def _render_game_cubes(self):
+        self.rows, self.columns = self.board_layout().shape
 
-    def _render_circles(self):
-        self.canvas.delete("discs")
-
-        rows, columns = self.board_layout().shape
-
-        for col in range(columns):
-            for row in range(rows):
+        for col in range(self.columns):
+            for row in range(self.rows):
                 player_id = self.board_layout()[row, col]
 
                 if player_id == 1:
@@ -102,30 +112,35 @@ class Connect4_GUI(Connect4):
                     continue
 
                 x1 = self.canvas_padding + col * (
-                    (self.width - 2 * self.canvas_padding) / columns
+                    (self.width - 2 * self.canvas_padding) / self.columns
                 )
                 y1 = self.canvas_padding + row * (
-                    (self.height - 2 * self.canvas_padding) / rows
+                    (self.height - 2 * self.canvas_padding) / self.rows
                 )
                 x2 = self.canvas_padding + (col + 1) * (
-                    (self.width - 2 * self.canvas_padding) / columns
+                    (self.width - 2 * self.canvas_padding) / self.columns
                 )
                 y2 = self.canvas_padding + (row + 1) * (
-                    (self.height - 2 * self.canvas_padding) / rows
+                    (self.height - 2 * self.canvas_padding) / self.rows
                 )
 
-                self.canvas.create_oval(
-                    x1, y1, x2, y2, outline=color, fill=color, tags="discs"
+                self.canvas.create_rectangle(
+                    x1 + self.game_cube_padding,
+                    y1 + self.game_cube_padding,
+                    x2 - self.game_cube_padding,
+                    y2 - self.game_cube_padding,
+                    outline=color,
+                    fill=color,
+                    tags="cubes",
                 )
 
     def _calculate_clicked_column(self, event) -> int:
-        column_width = (self.width - 2 * self.canvas_padding) / self.columns
-        clicked_column = ceil((event.x - self.canvas_padding) / column_width) - 1
+        self.column_width = (self.width - 2 * self.canvas_padding) / self.columns
+        self.clicked_column = (
+            ceil((event.x - self.canvas_padding) / self.column_width) - 1
+        )
 
-        return clicked_column
-
-    def _update_label(self, label, text: str):
-        label.text = text
+        return self.clicked_column
 
     def _clear_canvas(self, canvas: Optional[ctk.CTkCanvas] = None):
         for widget in self.root.winfo_children():
@@ -163,6 +178,22 @@ class Connect4_GUI(Connect4):
                 )
 
                 canvas.create_rectangle(x1, y1, x2, y2, outline="black")
+
+    def _create_game_labels(self):
+        self.Player_turn_label = self._create_label(
+            f"Player {self.current_player.identifier} starts the game!"
+        )
+        self.Player_turn_label.place(relx=0.5, rely=0.95, anchor="center")
+
+        self.player_one_score_label = self._create_label(
+            f"Player 1: {self.player_one.wins}"
+        )
+        self.player_one_score_label.place(relx=0.1, rely=0.05, anchor="center")
+
+        self.player_two_score_label = self._create_label(
+            f"Player 2: {self.player_two.wins}"
+        )
+        self.player_two_score_label.place(relx=0.9, rely=0.05, anchor="center")
 
     def _create_button(
         self,

@@ -1,6 +1,6 @@
 import itertools
 import numpy as np
-from tools.errors import InvalidMoveError
+from tools.errors import InvalidMoveError, GameEndError
 from .player import Player
 from typing import Optional
 
@@ -23,11 +23,12 @@ class Connect4:
         make_move(column: int) -> Optional[str]: Makes a move by placing a disc in the specified column.
         _switch_player(): Switches the current player.
         _is_board_full() -> bool: Checks if the game board is full.
+        board_layout() -> np.ndarray: Returns the game board layout.
         _get_next_row(column: int) -> int: Gets the next available row in the specified column.
         _is_valid_move(column: int) -> bool: Checks if the move is valid in the specified column.
         _choose_starting_player(players: [Player]) -> Player: Chooses a random starting player.
         _is_winning_move(player: Player) -> bool: Checks if the current player has won the game.
-        _initiate_terminal_game() -> Player: Starts a terminal-based game.
+        _initiate_terminal_game() -> Optional[Player]: Starts a terminal-based game.
     """
 
     def __init__(self):
@@ -41,6 +42,8 @@ class Connect4:
         """
         self.board: np.ndarray = np.zeros((6, 7), dtype=int)
         self.num_of_moves: int = 0
+
+        self.game_state: int = 0
 
         self.player_one: Player = Player(1)
         self.player_two: Player = Player(2)
@@ -78,23 +81,30 @@ class Connect4:
         Returns:
             Optional[str]: The result of the move (e.g., "Player 1 wins!", "Draw!").
         """
-        if not self._is_valid_move(column):
-            raise InvalidMoveError(column)
 
-        row = self._get_next_row(column)
-        self.board[row][column] = self.current_player.identifier
-        self.num_of_moves += 1
+        try:
+            self._is_valid_move(column)
+            self.row = self._get_next_row(column)
+            self.board[self.row][column] = self.current_player.identifier
+            self.num_of_moves += 1
 
-        if self._is_winning_move(self.current_player):
-            self.current_player.wins += 1
-            return f"Player {self.current_player.identifier} wins!"
+            if self._is_winning_move(self.current_player):
+                self.current_player.wins += 1
+                self.win_message = f"Player {self.current_player.identifier} wins!"
+                raise GameEndError(self.win_message)
 
-        if self._is_board_full():
-            return "Draw!"
+            if self._is_board_full():
+                self.draw_message = "Draw!"
+                raise GameEndError(self.draw_message)
 
-        self._switch_player()
+        except GameEndError as e:
+            self.game_state = 1
+            raise GameEndError(e)
 
-    def _switch_player(self):
+        except InvalidMoveError as e:
+            raise InvalidMoveError(e)
+
+    def switch_player(self):
         """
         Switches the current player.
         """
@@ -185,10 +195,10 @@ class Connect4:
             if all(self.board[row - i][col + i] == player.identifier for i in range(4)):
                 return True
 
-        return any(
-            all(self.board[row + i][col + i] == player.identifier for i in range(4))
-            for row, col in itertools.product(range(3), range(4))
-        )
+        # Diagonal check (from top-left to bottom-right)
+        for row, col in itertools.product(range(3), range(4)):
+            if all(self.board[row + i][col + i] == player.identifier for i in range(4)):
+                return True
 
     def _initiate_terminal_game(self) -> Optional[Player]:
         """
@@ -207,7 +217,7 @@ class Connect4:
 
             try:
                 self.make_move(column)
-
+                self.switch_player()
                 print(self.board)
 
                 if self._is_winning_move(self.current_player):
