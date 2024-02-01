@@ -7,228 +7,231 @@ from typing import Optional
 
 class Connect4:
     """
-    Connect4 class represents the Connect 4 game.
+    Represents the Connect4 game.
 
     Attributes:
-        board (numpy.ndarray): The game board represented as a 2D numpy array.
-        num_of_moves (int): The number of moves made in the game.
-        player_one (Player): The first player.
-        player_two (Player): The second player.
-        current_player (Player): The current player making a move.
+    - rows (int): The number of rows on the game board.
+    - columns (int): The number of columns on the game board.
+    - _board (np.ndarray): The game board represented as a NumPy array.
+    - _num_of_moves (int): The number of moves made in the game.
+    - _max_moves (int): The maximum number of moves allowed in the game.
+    - game_state (int): The current state of the game (0 for ongoing, 1 for finished).
+    - Player_one (Player): The first player in the game.
+    - Player_two (Player): The second player in the game.
+    - current_player (Player): The player who is currently making a move.
 
     Methods:
-        __init__(): Initializes the Connect4 object.
-        _clear_board(): Clears the game board and resets the number of moves.
-        rematch(): Starts a new game by clearing the board and choosing a new starting player.
-        make_move(column: int) -> Optional[str]: Makes a move by placing a disc in the specified column.
-        _switch_player(): Switches the current player.
-        _is_board_full() -> bool: Checks if the game board is full.
-        board_layout() -> np.ndarray: Returns the game board layout.
-        _get_next_row(column: int) -> int: Gets the next available row in the specified column.
-        _is_valid_move(column: int) -> bool: Checks if the move is valid in the specified column.
-        _choose_starting_player(players: [Player]) -> Player: Chooses a random starting player.
-        _is_winning_move(player: Player) -> bool: Checks if the current player has won the game.
-        _initiate_terminal_game() -> Optional[Player]: Starts a terminal-based game.
+    - clear_board(): Clears the game board and resets the number of moves to zero.
+    - rematch(): Resets the game state, clears the board, and chooses a new starting player.
+    - make_move(column: int) -> Optional[Exception]: Makes a move in the specified column.
+    - _switch_player(): Switches the current player to the other player.
+    - _is_board_full() -> bool: Checks if the game board is full.
+    - board_layout() -> np.ndarray: Returns the current layout of the game board.
+    - _get_next_row(column: int) -> int: Returns the next available row in the specified column.
+    - _is_valid_move(column: int) -> bool: Checks if the specified column is a valid move.
+    - choose_starting_player(players: [Player]) -> Player: Chooses a random player as the starting player.
+    - _is_winning_move(player: Player) -> bool: Checks if the current move is a winning move for the player.
+    - __str__() -> str: Returns a string representation of the game board.
     """
 
     def __init__(self):
         """
-        Initializes the Connect4 object.
+        Initializes a Connect4 game instance.
 
-        The game board is represented as a 2D numpy array with dimensions 6x7.
-        The number of moves is set to 0.
-        Two players are created using the Player class.
-        The starting player is chosen randomly.
+        Attributes:
+        - rows (int): The number of rows on the game board.
+        - columns (int): The number of columns on the game board.
+        - _board (np.ndarray): The game board represented as a NumPy array.
+        - _num_of_moves (int): The current number of moves made in the game.
+        - _max_moves (int): The maximum number of moves allowed in the game.
+        - game_state (int): The current state of the game.
+        - Player_one (Player): The first player in the game.
+        - Player_two (Player): The second player in the game.
+        - current_player (Player): The player who is currently making a move.
         """
+
         self.rows: int = 6
         self.columns: int = 7
-        self.board: np.ndarray = np.zeros((self.rows, self.columns), dtype=int)
-        self.num_of_moves: int = 0
-        self.max_moves: int = self.rows * self.columns
+        self._board: np.ndarray = np.zeros((self.rows, self.columns), dtype=int)
+        self._num_of_moves: int = 0
+        self._max_moves: int = self.rows * self.columns
 
         self.game_state: int = 0
 
-        self.player_one: Player = Player(1)
-        self.player_two: Player = Player(2)
+        self.Player_one: Player = Player(1, "#70D6FF")
+        self.Player_two: Player = Player(2, "#FF70A6")
 
-        self.current_player: Player = self._choose_starting_player(
-            [self.player_one, self.player_two]
+        self.current_player: Player = self.choose_starting_player(
+            [self.Player_one, self.Player_two]
         )
 
-    def _clear_board(self):
+    def clear_board(self):
         """
-        Clears the game board and resets the number of moves.
+        Clears the game board and resets the number of moves to zero.
         """
-        self.board = np.zeros((self.rows, self.columns), dtype=int)
-        self.num_of_moves = 0
+        self._board = np.zeros((self.rows, self.columns), dtype=int)
+        self._num_of_moves = 0
 
     def rematch(self):
         """
-        Starts a new game by clearing the board and choosing a new starting player.
-        """
-        self._clear_board()
-        self.current_player: Player = self._choose_starting_player(
-            [self.player_one, self.player_two]
-        )
+        Resets the game state and clears the board for a rematch.
+        The starting player for the rematch is chosen randomly from the two players.
 
-    def make_move(self, column: int) -> Optional[str]:
-        """
-        Makes a move by placing a disc in the specified column.
-
-        Args:
-            column (int): The column where the disc should be placed.
-
+        Parameters:
+            None
 
         Returns:
-            Optional[str]: The result of the move (e.g., "Player 1 wins!", "Draw!").
+            None
+        """
+        self.game_state = 0
+        self.clear_board()
+        self.current_player: Player = self.choose_starting_player(
+            [self.Player_one, self.Player_two]
+        )
+
+    def make_move(self, column: int) -> Optional[Exception]:
+        """
+        Makes a move in the Connect4 game by placing a token in the specified column.
+
+        Args:
+            column (int): The column number where the token should be placed.
+
+        Returns:
+            Optional[Exception]: Returns an exception if the move results in a win or draw, otherwise returns None.
         """
 
-        self._is_valid_move(column)
-        self.row = self._get_next_row(column)
-        self.board[self.row][column] = self.current_player.identifier
-        self.num_of_moves += 1
+        if self.game_state != 0:
+            return
 
-        if self._is_winning_move(self.current_player):
-            self.current_player.wins += 1
-            self.win_message = f"Player {self.current_player.identifier} wins!"
-            self.game_state = 1
-            raise PlayerWin(self.current_player.identifier)
+        if self._is_valid_move(column):
+            self.row = self._get_next_row(column)
+            self._board[self.row][column] = self.current_player.identifier
+            self._num_of_moves += 1
 
-        if self._is_board_full():
-            self.game_state = 1
-            raise GameDraw()
+            if self._is_winning_move(self.current_player):
+                self.current_player.wins += 1
+                self.win_message = f"Player {self.current_player.identifier} wins!"
+                self.game_state = 1
+                raise PlayerWin(self.current_player.identifier)
 
-    def switch_player(self):
+            if self._is_board_full():
+                self.game_state = 1
+                raise GameDraw()
+
+            self._switch_player()
+
+    def _switch_player(self):
         """
-        Switches the current player.
+        Switches the current player to the other player.
         """
+        self.current_player
         self.current_player = (
-            self.player_one
-            if self.current_player == self.player_two
-            else self.player_two
+            self.Player_one
+            if self.current_player == self.Player_two
+            else self.Player_two
         )
 
     def _is_board_full(self) -> bool:
         """
-        Checks if the game board is full.
+        Check if the game board is full.
 
         Returns:
             bool: True if the board is full, False otherwise.
         """
-        return self.num_of_moves == self.max_moves
+        return self._num_of_moves == self._max_moves
 
     def board_layout(self) -> np.ndarray:
         """
-        Returns the game board layout.
+        Returns the current layout of the game board.
 
         Returns:
-            np.ndarray: The game board layout.
+            np.ndarray: The current layout of the game board.
         """
-        return self.board
+        return self._board
 
     def _get_next_row(self, column: int) -> int:
         """
-        Gets the next available row in the specified column.
+        Get the next available row in the specified column.
 
         Args:
-            column (int): The column to check.
+            column (int): The column index.
 
         Returns:
-            int: The next available row in the column.
+            int: The row index of the next available row in the column.
         """
         for row in range(5, -1, -1):
-            if self.board[row][column] == 0:
+            if self._board[row][column] == 0:
                 return row
 
     def _is_valid_move(self, column: int) -> bool:
         """
-        Checks if the move is valid in the specified column.
+        Check if a move is valid in the specified column.
 
         Args:
             column (int): The column to check.
 
         Returns:
             bool: True if the move is valid, False otherwise.
+
+        Raises:
+            InvalidMoveError: If the column is already full.
         """
-        if self.board[0][column] == 0:
+        if self._board[0][column] == 0:
             return True
         else:
             raise InvalidMoveError(column)
 
-    def _choose_starting_player(self, players: [Player]) -> Player:
+    def choose_starting_player(self, players: [Player]) -> Player:
         """
-        Chooses a random starting player.
+        Randomly selects a player from the given list of players to be the starting player.
 
         Args:
-            players ([Player]): The list of players.
+            players (list): A list of Player objects representing the players in the game.
 
         Returns:
-            Player: The randomly chosen starting player.
+            Player: The randomly selected starting player.
         """
         return np.random.choice(players)
 
     def _is_winning_move(self, player: Player) -> bool:
         """
-        Checks if the current player has won the game.
+        Check if the specified player has made a winning move on the game board.
 
         Args:
-            player (Player): The current player.
+            player (Player): The player to check for a winning move.
 
         Returns:
-            bool: True if the current player has won, False otherwise.
+            bool: True if the player has made a winning move, False otherwise.
         """
         # Horizontal check
         for row, col in itertools.product(range(6), range(4)):
-            if all(self.board[row][col + i] == player.identifier for i in range(4)):
+            if all(self._board[row][col + i] == player.identifier for i in range(4)):
                 return True
 
         # Vertical check
         for row, col in itertools.product(range(3), range(7)):
-            if all(self.board[row + i][col] == player.identifier for i in range(4)):
+            if all(self._board[row + i][col] == player.identifier for i in range(4)):
                 return True
 
         # Diagonal check (from bottom-left to top-right)
         for row, col in itertools.product(range(3, 6), range(4)):
-            if all(self.board[row - i][col + i] == player.identifier for i in range(4)):
+            if all(
+                self._board[row - i][col + i] == player.identifier for i in range(4)
+            ):
                 return True
 
         # Diagonal check (from top-left to bottom-right)
         for row, col in itertools.product(range(3), range(4)):
-            if all(self.board[row + i][col + i] == player.identifier for i in range(4)):
+            if all(
+                self._board[row + i][col + i] == player.identifier for i in range(4)
+            ):
                 return True
-
-    def _initiate_terminal_game(self) -> Optional[Player]:
-        """
-        Starts a terminal-based game.
-
-        Returns:
-            Player: The winning player, if any.
-        """
-        while not self._is_board_full():
-            column = (
-                int(
-                    input(f"Player {self.current_player.identifier}, choose a column: ")
-                )
-                - 1
-            )
-
-            try:
-                self.make_move(column)
-                self.switch_player()
-                print(self.board)
-
-                if self._is_winning_move(self.current_player):
-                    print(f"Player {self.current_player.identifier} wins!")
-                    return self.current_player
-
-            except InvalidMoveError as e:
-                print(column)
 
     def __str__(self) -> str:
         """
-        Returns a string representation of the Connect4 object.
+        Returns a string representation of the Connect4 game board.
 
         Returns:
-            str: The string representation of the object.
+            str: The string representation of the game board.
         """
-        return str(self.board)
+        return str(self._board)

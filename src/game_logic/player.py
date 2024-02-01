@@ -7,6 +7,7 @@ class Player:
         wins (int): The number of wins the player has.
     """
 
-    def __init__(self, identifier: int):
+    def __init__(self, identifier: int, color: str):
         self.identifier = identifier
         self.wins = 0
+        self.color = color
