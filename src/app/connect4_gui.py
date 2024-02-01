@@ -43,6 +43,10 @@ class Connect4_GUI(Connect4):
         - _create_canvas(self) -> ctk.CTkCanvas: Create and return a CTkCanvas object.
         - _create_grid_rectangles(self, canvas: ctk.CTkCanvas): Creates grid on the canvas.
         - _create_game_labels(self): Creates and places the game labels on the GUI.
+        - _create_button(self): Create a button widget with the given title, command, and optional parameters.
+        - _create_label(self, text: str, text_color="#1f6aa5", **kwargs) -> ctk.CTkLabel: Create and return a custom labeled widget.
+        - _update_label(self, label: ctk.CTkLabel, text: str, **kwargs) -> ctk.CTkLabel: Updates the given label with the specified text and optional keyword arguments.
+        - _set_settings(self, appearence: str = "dark", theme: str = "blue"): Set the appearance mode and default color theme for the GUI.
     """
 
     def __init__(self, width: int = 700, height: int = 600):
@@ -111,17 +115,18 @@ class Connect4_GUI(Connect4):
 
         self.canvas.bind("<Button-1>", self._on_game_grid_click)
 
-    def _game_over_menu(self, message: str):
+    def _game_over_menu(self, e: str):
         """
         Displays the game over menu with the specified message.
 
         Args:
             - message (str): The message to display.
         """
-        self._game_over_message = self._create_label(
-            message, text_color=self.current_player.color
+        self.bottom_label = self._update_label(
+            self.bottom_label, f"{e}", text_color=self.current_player.color
         )
-        self._game_over_message.place(relx=0.5, rely=0.4, anchor="center")
+        self.bottom_label.place(relx=0.5, rely=0.95, anchor="center")
+
         self._draw_button = self._create_button(
             "Rematch",
             self.rematch,
@@ -170,18 +175,24 @@ class Connect4_GUI(Connect4):
         """
         try:
             super().make_move(column)
+            self.bottom_label = self._update_label(
+                self.bottom_label,
+                f"Player {self.current_player.identifier}'s turn",
+                text_color=self.current_player.color,
+            )
+            self.bottom_label.place(relx=0.5, rely=0.95, anchor="center")
 
         except GameDraw as e:
             self._game_over_menu(e)
-            self.bottom_label = self._update_label(self.bottom_label, f"{e}")
 
         except PlayerWin as e:
             self._game_over_menu(e)
-            self.bottom_label = self._update_label(self.bottom_label, f"{e}")
 
         except InvalidMoveError as e:
-            self.bottom_label = self._update_label(self.bottom_label, f"{e}")
-            print(e)
+            self.bottom_label = self._update_label(
+                self.bottom_label, f"{e}", text_color=self.current_player.color
+            )
+            self.bottom_label.place(relx=0.5, rely=0.95, anchor="center")
 
         finally:
             self._render_game_cubes(self.canvas)
@@ -407,13 +418,23 @@ class Connect4_GUI(Connect4):
             **kwargs,
         )
 
-    def _update_label(self, label: ctk.CTkLabel, text: str) -> ctk.CTkLabel:
-        label.destroy
-        return self._create_label(text)
+    def _update_label(self, label: ctk.CTkLabel, text: str, **kwargs) -> ctk.CTkLabel:
+        """
+        Updates the given label with the specified text and optional keyword arguments.
 
-    def _create_label(
-        self, text: tk.StringVar, text_color="#1f6aa5", **kwargs
-    ) -> ctk.CTkLabel:
+        Args:
+            label (ctk.CTkLabel): The label to be updated.
+            text (str): The new text for the label.
+            **kwargs: Optional keyword arguments to be passed to the _create_label method.
+
+        Returns:
+            ctk.CTkLabel: The updated label.
+        """
+        if label:
+            label.destroy()
+        return self._create_label(text=text, **kwargs)
+
+    def _create_label(self, text: str, text_color="#1f6aa5", **kwargs) -> ctk.CTkLabel:
         """
         Create and return a custom labeled widget.
 
